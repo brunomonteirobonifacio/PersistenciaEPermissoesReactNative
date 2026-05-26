@@ -12,6 +12,10 @@ import {
 import myColors from "./assets/colors.json";
 import myColorsDark from "./assets/colorsDark.json";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from 'expo-location';
+import openDB from "./db";
+
+const db = openDB();
 
 export default function App() {
   const [isSwitchOn, setIsSwitchOn] = useState(false); // variável para controle do darkMode
@@ -44,11 +48,15 @@ export default function App() {
   async function getLocation() {
     setIsLoading(true);
 
-    // Localização fake, substituir por localização real do dispositivo
-    const coords = {
-      latitude: -23.5505199,
-      longitude: -46.6333094,
-    };
+    const newLocations = locations.slice();
+    const location = await Location.getCurrentPositionAsync({});
+    newLocations.push(location);
+    setLocations(newLocations);
+
+    const statement = await db.prepareAsync(
+      'INSERT INTO location (latitude, longitude) VALUES ($latitude, $longitude)'
+    );
+    await statement.executeAsync({ $latitude: location.latitude, $longitude: location.longitude });
 
     setIsLoading(false);
   }
@@ -57,24 +65,24 @@ export default function App() {
   async function loadLocations() {
     setIsLoading(true);
 
-    // generate fake locations
-    const locations = [];
-    for (let i = 0; i < 5; i++) {
-      locations.push({
-        id: i,
-        latitude: -23.5505199 + i,
-        longitude: -46.6333094 + i,
-      });
-    }
+    const locations = db.getAllSync('select * from locations');
 
     setLocations(locations);
     setIsLoading(false);
+  }
+
+  async function requestLocationPermission() {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('Permission to access location was denied');
+    }
   }
 
   // Use Effect para carregar o darkMode e as localizações salvas no banco de dados
   // É executado apenas uma vez, quando o componente é montado
   useEffect(() => {
     loadDarkMode();
+    requestLocationPermission();
     loadLocations();
   }, []);
 
@@ -91,7 +99,7 @@ export default function App() {
   return (
     <PaperProvider theme={theme}>
       <Appbar.Header>
-        <Appbar.Content title="My Location BASE" />
+        <Appbar.Content title="My Location" />
       </Appbar.Header>
       <View style={{ backgroundColor: theme.colors.background }}>
         <View style={styles.containerDarkMode}>
