@@ -50,14 +50,16 @@ export default function App() {
     setIsLoading(true);
 
     const newLocations = locations.slice();
-    const location = await Location.getCurrentPositionAsync({});
+    const locationResult = await Location.getCurrentPositionAsync({});
+    
+    const statement = await db.prepareAsync(
+      'INSERT INTO locations (latitude, longitude) VALUES ($latitude, $longitude)'
+    );
+    
+    const location = await statement.executeAsync({ $latitude: locationResult.coords.latitude, $longitude: locationResult.coords.longitude });
+    
     newLocations.push(location);
     setLocations(newLocations);
-
-    const statement = await db.prepareAsync(
-      'INSERT INTO location (latitude, longitude) VALUES ($latitude, $longitude)'
-    );
-    await statement.executeAsync({ $latitude: location.latitude, $longitude: location.longitude });
 
     setIsLoading(false);
   }
@@ -66,7 +68,7 @@ export default function App() {
   async function loadLocations() {
     setIsLoading(true);
 
-    const locations = db.getAllSync('select * from locations');
+    const locations = db.getAllSync('SELECT * FROM locations');
 
     setLocations(locations);
     setIsLoading(false);
