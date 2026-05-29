@@ -32,7 +32,8 @@ export default function App() {
 
   // load darkMode from AsyncStorage
   async function loadDarkMode() {
-    const isDarkModeOn = await AsyncStorage.getItem('@darkMode') ?? false;
+    const rawIsDarkModeOn = await AsyncStorage.getItem('@darkMode');
+    const isDarkModeOn = rawIsDarkModeOn ? JSON.parse(rawIsDarkModeOn) : false;
     setIsSwitchOn(isDarkModeOn);
   }
 
@@ -41,7 +42,7 @@ export default function App() {
     const newIsSwitchOn = !isSwitchOn;
 
     setIsSwitchOn(newIsSwitchOn);
-    await AsyncStorage.setItem('@darkMode', newIsSwitchOn);
+    await AsyncStorage.setItem('@darkMode', JSON.stringify(newIsSwitchOn));
   }
 
   // get location (bottao capturar localização)
